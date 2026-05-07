@@ -1,0 +1,13 @@
+providers = ["python"]
+
+[phases.setup]
+aptPkgs = [
+  "tesseract-ocr",
+  "tesseract-ocr-por",
+  "poppler-utils",
+  "libgl1",
+  "libglib2.0-0"
+]
+
+[start]
+cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2"
