@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from typing import Optional
+
+from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
 
 from app.config import settings
 from app.models.schemas import DocumentoResponse
@@ -22,7 +24,10 @@ _MAX_BYTES = settings.max_pdf_size_mb * 1024 * 1024
     status_code=status.HTTP_201_CREATED,
     summary="Recebe PDF jurídico e retorna dados estruturados",
 )
-async def upload_document(file: UploadFile = File(...)) -> DocumentoResponse:
+async def upload_document(
+    file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None),
+) -> DocumentoResponse:
     if file.content_type not in _ALLOWED_CONTENT_TYPES and not (
         file.filename or ""
     ).lower().endswith(".pdf"):
@@ -54,6 +59,11 @@ async def upload_document(file: UploadFile = File(...)) -> DocumentoResponse:
             detail="Não foi possível extrair texto legível do PDF.",
         )
 
+    user_id: Optional[str] = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.removeprefix("Bearer ").strip()
+        user_id = db_service.get_user_id(token)
+
     try:
         documento = await llm_service.extract_structured_data(text)
     except Exception as exc:
@@ -62,6 +72,8 @@ async def upload_document(file: UploadFile = File(...)) -> DocumentoResponse:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Falha na extração de dados via LLM: {exc}",
         ) from exc
+
+    documento.user_id = user_id
 
     try:
         saved = await db_service.insert_document(documento)

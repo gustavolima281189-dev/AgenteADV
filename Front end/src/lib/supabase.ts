@@ -16,4 +16,5 @@ export interface DocumentoJuridico {
   sintese: string
   status_leitura: 'Sucesso' | 'Falha'
   criado_em: string
+  user_id: string | null
 }

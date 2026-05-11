@@ -30,6 +30,7 @@ class DocumentoJuridico(BaseModel):
     polo_passivo_ou_contratado: List[str]
     sintese: str
     status_leitura: StatusLeitura
+    user_id: Optional[str] = None
 
     @field_validator("data_identificada", mode="before")
     @classmethod

@@ -59,6 +59,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [selectedDoc, setSelectedDoc] = useState<DocumentoJuridico | null>(null)
+  const [userId, setUserId] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -67,15 +68,17 @@ export default function DashboardPage() {
         router.replace('/login')
       } else {
         setUserEmail(session.user.email ?? '')
-        fetchHistory()
+        setUserId(session.user.id)
+        fetchHistory(session.user.id)
       }
     })
   }, [router])
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (uid: string) => {
     const { data } = await supabase
       .from('documentos_juridicos')
       .select('*')
+      .eq('user_id', uid)
       .order('criado_em', { ascending: false })
       .limit(50)
 
@@ -86,13 +89,20 @@ export default function DashboardPage() {
     setLoading(true)
     setResult(null)
 
+    const { data: { session } } = await supabase.auth.getSession()
     const formData = new FormData()
     formData.append('file', file)
 
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`,
-        { method: 'POST', body: formData }
+        {
+          method: 'POST',
+          body: formData,
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        }
       )
 
       const data = await response.json()
@@ -100,7 +110,7 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error(data.detail ?? 'Erro ao processar documento')
 
       setResult(data as DocumentoJuridico)
-      fetchHistory()
+      fetchHistory(userId)
     } catch (err) {
       alert(`Erro: ${err instanceof Error ? err.message : 'Erro desconhecido'}`)
     } finally {
