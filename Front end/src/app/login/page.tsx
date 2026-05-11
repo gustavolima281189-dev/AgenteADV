@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     setLoading(false)
     if (error) {
-      setError('Não foi possível enviar o e-mail. Verifique o endereço.')
+      setError(error.message)
     } else {
       setResetSent(true)
     }
