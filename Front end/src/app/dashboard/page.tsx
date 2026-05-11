@@ -64,24 +64,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        router.replace('/login')
-      } else {
+      if (session) {
         setUserEmail(session.user.email ?? '')
         setUserId(session.user.id)
         fetchHistory(session.user.id)
+      } else {
+        fetchHistory('')
       }
     })
   }, [router])
 
   const fetchHistory = async (uid: string) => {
-    const { data } = await supabase
+    let query = supabase
       .from('documentos_juridicos')
       .select('*')
-      .eq('user_id', uid)
       .order('criado_em', { ascending: false })
       .limit(50)
 
+    if (uid) query = query.eq('user_id', uid)
+
+    const { data } = await query
     if (data) setHistory(data as DocumentoJuridico[])
   }
 
